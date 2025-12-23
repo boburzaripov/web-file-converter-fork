@@ -184,3 +184,46 @@ async function convertFiles() {
     }
 }
 
+async function convertTxtToPdf() {
+    const file = selectedFiles[0];
+    const text = await file.text();
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF();
+
+    const lines = pdf.splitTextToSize(text, 180);
+    let y = 20;
+
+    lines.forEach(line => {
+        if (y > 280) {
+            pdf.addPage();
+            y = 20;
+        }
+        pdf.text(line, 15, y);
+        y += 7;
+    });
+
+    const pdfBlob = pdf.output('blob');
+    showResult([{ blob: pdfBlob, name: file.name.replace('.txt', '.pdf') }]);
+}
+
+async function convertImageToPdf() {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF();
+
+    for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        const img = await readFileAsDataURL(file);
+
+        if (i > 0) pdf.addPage();
+
+        const imgProps = pdf.getImageProperties(img);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+        pdf.addImage(img, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+    }
+
+    const pdfBlob = pdf.output('blob');
+    showResult([{ blob: pdfBlob, name: 'images.pdf' }]);
+}
