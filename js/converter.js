@@ -270,3 +270,78 @@ async function convertDocxToPdf() {
     showResult([{ blob: pdfBlob, name: file.name.replace(/\.(doc|docx)$/, '.pdf') }]);
 }
 
+async function splitPdf() {
+    const file = selectedFiles[0];
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+
+    const { jsPDF } = window.jspdf;
+    const results = [];
+
+    for (const pageNum of pdfPages) {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 2.0 });
+
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+        const imgData = canvas.toDataURL('image/jpeg', 1.0);
+        const newPdf = new jsPDF({
+            orientation: viewport.width > viewport.height ? 'landscape' : 'portrait',
+            unit: 'px',
+            format: [viewport.width, viewport.height]
+        });
+
+        newPdf.addImage(imgData, 'JPEG', 0, 0, viewport.width, viewport.height);
+
+        results.push({
+            blob: newPdf.output('blob'),
+            name: `${file.name.replace('.pdf', '')}_page_${pageNum}.pdf`
+        });
+    }
+
+    showResult(results);
+}
+
+async function mergePdf() {
+    const { jsPDF } = window.jspdf;
+    const mergedPdf = new jsPDF();
+    let firstPage = true;
+
+    for (const file of selectedFiles) {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const viewport = page.getViewport({ scale: 2.0 });
+
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+
+            await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+            const imgData = canvas.toDataURL('image/jpeg', 1.0);
+
+            if (!firstPage) {
+                mergedPdf.addPage();
+            }
+            firstPage = false;
+
+            const pdfWidth = mergedPdf.internal.pageSize.getWidth();
+            const pdfHeight = (viewport.height * pdfWidth) / viewport.width;
+
+            mergedPdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+        }
+    }
+
+    const pdfBlob = mergedPdf.output('blob');
+    showResult([{ blob: pdfBlob, name: 'merged.pdf' }]);
+}
+
