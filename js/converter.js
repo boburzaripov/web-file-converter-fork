@@ -137,3 +137,50 @@ function togglePage(pageNum, element) {
     pdfPages.sort((a, b) => a - b);
 }
 
+async function convertFiles() {
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+    const resultArea = document.getElementById('resultArea');
+    const fileInfo = document.getElementById('fileInfo');
+
+    progressBar.style.display = 'block';
+    resultArea.style.display = 'none';
+    fileInfo.style.display = 'none';
+
+    for (let i = 0; i <= 100; i += 10) {
+        progressFill.style.width = i + '%';
+        progressFill.textContent = i + '%';
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    try {
+        switch (currentConverter) {
+            case 'txt-pdf':
+                await convertTxtToPdf();
+                break;
+            case 'img-pdf':
+            case 'multi-img-pdf':
+                await convertImageToPdf();
+                break;
+            case 'pdf-txt':
+                await convertPdfToTxt();
+                break;
+            case 'docx-pdf':
+                await convertDocxToPdf();
+                break;
+            case 'pdf-split':
+                await splitPdf();
+                break;
+            case 'pdf-merge':
+                await mergePdf();
+                break;
+            case 'file-analyzer':
+                analyzeFile();
+                break;
+        }
+    } catch (error) {
+        alert('Xatolik yuz berdi: ' + error.message);
+        progressBar.style.display = 'none';
+    }
+}
+
