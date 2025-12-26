@@ -159,3 +159,10 @@ body {
     box-shadow: 0 10px 25px rgba(0, 229, 255, 0.4);
 }
 
+.footer {
+    background: #000;
+    color: #ccc;
+    text-align: center;
+    padding: 18px 10px;
+    font-size: 14px;
+}
